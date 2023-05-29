@@ -1,4 +1,4 @@
-import { Score, useMutation, useStorage } from "@/pages/liveblocks.config";
+import { Score, useMutation, useStorage } from "@/components/liveblocks.config";
 import {
   ActionIcon,
   Button,

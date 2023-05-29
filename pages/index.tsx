@@ -9,7 +9,11 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { RoomProvider, useMutation, useStorage } from "./liveblocks.config";
+import {
+  RoomProvider,
+  useMutation,
+  useStorage,
+} from "../components/liveblocks.config";
 import { Room } from "@/components/Room";
 import { useCallback, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
