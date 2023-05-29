@@ -1,25 +1,33 @@
-import Head from "next/head";
-import Image from "next/image";
 import { Inter } from "next/font/google";
-import styles from "@/styles/Home.module.css";
 import {
   AppShell,
   Box,
   Button,
   Container,
-  Divider,
-  Group,
   Header,
-  Input,
-  Navbar,
-  PinInput,
   TextInput,
   Title,
 } from "@mantine/core";
+import { RoomProvider, useMutation, useStorage } from "./liveblocks.config";
+import { Room } from "@/components/Room";
+import { useCallback, useEffect, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { useOthers } from "@/pages/liveblocks.config";
+import { LiveList } from "@liveblocks/client";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
+  const [teamId, setTeamId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTeamId(window.localStorage.getItem("teamId"));
+  }, []);
+
+  const onLeaveRoom = useCallback(() => {
+    setTeamId(null);
+  }, []);
+
   return (
     <>
       <AppShell
@@ -39,40 +47,69 @@ export default function Home() {
         })}
       >
         <Container>
-          <Box
-            sx={(theme) => ({
-              textAlign: "center",
-            })}
+          <RoomProvider
+            id="handFootScoring"
+            initialPresence={{}}
+            initialStorage={{ teams: new LiveList([]) }}
           >
-            <Button size="xl" mt="xl" type="button">
-              Start New Game
-            </Button>
-
-            <Title order={1} my="xl">
-              OR
-            </Title>
-
-            <form>
-              <TextInput
-                placeholder="Team name"
-                label="Team name"
-                withAsterisk
-                mb="lg"
-              />
-
-              <Group position="center" mb="lg">
-                <Input.Wrapper label="Code" withAsterisk>
-                  <PinInput length={6} />
-                </Input.Wrapper>
-              </Group>
-
-              <Button size="xl" type="submit">
-                Join Game
-              </Button>
-            </form>
-          </Box>
+            {teamId ? (
+              <Room onLeaveRoom={onLeaveRoom} teamId={teamId} />
+            ) : (
+              <JoinGame onJoin={(v) => setTeamId(v)} />
+            )}
+          </RoomProvider>
         </Container>
       </AppShell>
+    </>
+  );
+}
+
+function JoinGame({ onJoin }: { onJoin: (teamId: string) => void }) {
+  const [teamName, setTeamName] = useState("");
+  useStorage((root) => root.teams);
+
+  const addTeam = useMutation(({ storage }, teamId, teamName) => {
+    const mutableTeams = storage.get("teams");
+    mutableTeams.push({
+      id: teamId,
+      name: teamName,
+      scores: [],
+    });
+  }, []);
+
+  return (
+    <>
+      <Box
+        sx={() => ({
+          textAlign: "center",
+        })}
+        mt="xl"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+
+            const newTeamId = uuidv4();
+            addTeam(newTeamId, teamName);
+            onJoin(newTeamId);
+          }}
+        >
+          <TextInput
+            placeholder="Team name"
+            label="Team name"
+            withAsterisk
+            mb="lg"
+            size="lg"
+            value={teamName}
+            onChange={(e) => setTeamName(e.currentTarget.value)}
+            required
+          />
+
+          <Button size="xl" type="submit">
+            Join Game
+          </Button>
+        </form>
+      </Box>
     </>
   );
 }
