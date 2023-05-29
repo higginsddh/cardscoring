@@ -5,6 +5,7 @@ import {
   Button,
   Container,
   Header,
+  Loader,
   TextInput,
   Title,
 } from "@mantine/core";
@@ -12,7 +13,6 @@ import { RoomProvider, useMutation, useStorage } from "./liveblocks.config";
 import { Room } from "@/components/Room";
 import { useCallback, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { useOthers } from "@/pages/liveblocks.config";
 import { LiveList } from "@liveblocks/client";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -26,6 +26,7 @@ export default function Home() {
 
   const onLeaveRoom = useCallback(() => {
     setTeamId(null);
+    window.localStorage.removeItem("teamId");
   }, []);
 
   return (
@@ -55,7 +56,12 @@ export default function Home() {
             {teamId ? (
               <Room onLeaveRoom={onLeaveRoom} teamId={teamId} />
             ) : (
-              <JoinGame onJoin={(v) => setTeamId(v)} />
+              <JoinGame
+                onJoin={(v) => {
+                  window.localStorage.setItem("teamId", v);
+                  setTeamId(v);
+                }}
+              />
             )}
           </RoomProvider>
         </Container>
@@ -66,7 +72,7 @@ export default function Home() {
 
 function JoinGame({ onJoin }: { onJoin: (teamId: string) => void }) {
   const [teamName, setTeamName] = useState("");
-  useStorage((root) => root.teams);
+  const teams = useStorage((root) => root.teams);
 
   const addTeam = useMutation(({ storage }, teamId, teamName) => {
     const mutableTeams = storage.get("teams");
@@ -77,7 +83,9 @@ function JoinGame({ onJoin }: { onJoin: (teamId: string) => void }) {
     });
   }, []);
 
-  return (
+  return teams === null ? (
+    <Loader />
+  ) : (
     <>
       <Box
         sx={() => ({

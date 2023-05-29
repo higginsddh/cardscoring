@@ -5,11 +5,16 @@ const client = createClient({
   publicApiKey: process.env.NEXT_PUBLIC_LIVEBLOCK_KEY,
 });
 
+export type Score = {
+  id: string;
+  value: number;
+};
+
 type Storage = {
   teams: LiveList<{
     id: string;
     name: string;
-    scores: Array<{ id: string; value: number }>;
+    scores: Array<Score>;
   }>;
 };
 
