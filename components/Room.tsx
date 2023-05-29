@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconTrash } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Text } from "@mantine/core";
 import { v4 as uuidv4 } from "uuid";
 
@@ -52,7 +52,7 @@ export function Room({
         <thead>
           <tr>
             <th>Team</th>
-            <th>Score</th>
+            <th style={{ textAlign: "right" }}>Score</th>
           </tr>
         </thead>
         <tbody>
@@ -61,7 +61,9 @@ export function Room({
               <td>
                 <TeamName name={t.name} onDelete={() => removeTeam(t.id)} />
               </td>
-              <td>{t.scores.reduce((acc, s) => acc + s.value, 0)}</td>
+              <td style={{ textAlign: "right" }}>
+                {t.scores.reduce((acc, s) => acc + s.value, 0)}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -153,6 +155,7 @@ function FinishGame({}: {}) {
 function Scores({ teamId, scores }: { teamId: string; scores: Array<Score> }) {
   const [opened, { open, close }] = useDisclosure(false);
   const [score, setScore] = useState<number | "">("");
+  const scoreRef = useRef<HTMLInputElement>(null);
 
   const addScore = useMutation(
     ({ storage }, value) => {
@@ -172,6 +175,32 @@ function Scores({ teamId, scores }: { teamId: string; scores: Array<Score> }) {
     },
     [teamId]
   );
+
+  const deleteScore = useMutation(
+    ({ storage }, scoreId) => {
+      const mutableTeams = storage.get("teams");
+      const index = mutableTeams.findIndex((t) => t.id === teamId);
+
+      if (index !== -1) {
+        const currentTeam = mutableTeams.get(index);
+        if (currentTeam) {
+          currentTeam.scores = currentTeam.scores.filter(
+            (s) => s.id !== scoreId
+          );
+          mutableTeams.set(index, currentTeam);
+        }
+      }
+    },
+    [teamId]
+  );
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (opened && scoreRef.current) {
+        scoreRef.current.focus();
+      }
+    }, 25);
+  }, [opened]);
 
   return (
     <>
@@ -194,38 +223,92 @@ function Scores({ teamId, scores }: { teamId: string; scores: Array<Score> }) {
         <tbody>
           {scores.map((s) => (
             <tr key={s.id}>
-              <td>{s.value}</td>
+              <td style={{ textAlign: "right" }}>
+                <ScoreValue
+                  value={s.value}
+                  deleteScore={() => deleteScore(s.id)}
+                />
+              </td>
             </tr>
           ))}
         </tbody>
       </Table>
       <Modal opened={opened} onClose={close} title="Add points">
-        <NumberInput
-          label="Score"
-          required
-          withAsterisk
-          min={1}
-          max={99999}
-          value={score}
-          onChange={(v) => setScore(v)}
-        />
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            addScore(score);
+            close();
+          }}
+        >
+          <NumberInput
+            label="Score"
+            required
+            withAsterisk
+            min={1}
+            max={99999}
+            value={score}
+            onChange={(v) => setScore(v)}
+            ref={scoreRef}
+          />
 
+          <Group mt="md">
+            <Button type="submit">Save</Button>
+            <Button
+              color="gray"
+              type="button"
+              onClick={() => {
+                close();
+              }}
+            >
+              Cancel
+            </Button>
+          </Group>
+        </form>
+      </Modal>
+    </>
+  );
+}
+
+function ScoreValue({
+  value,
+  deleteScore,
+}: {
+  value: number;
+  deleteScore: () => void;
+}) {
+  const [opened, { open, close }] = useDisclosure(false);
+
+  return (
+    <>
+      <Group spacing="xs">
+        {value}
+        <ActionIcon onClick={() => open()}>
+          <IconTrash size={"1rem"} />
+        </ActionIcon>
+      </Group>
+      <Modal opened={opened} onClose={close} title="Remove score">
+        Are you sure you want to remove the score{" "}
+        <Text span fw={700}>
+          {value}
+        </Text>
+        ?
         <Group mt="md">
           <Button
+            color="red"
             onClick={() => {
-              addScore(score);
+              deleteScore();
               close();
             }}
           >
-            Save
+            Yes
           </Button>
           <Button
-            color="gray"
             onClick={() => {
               close();
             }}
           >
-            Cancel
+            No
           </Button>
         </Group>
       </Modal>
