@@ -245,8 +245,6 @@ function Scores({ teamId, scores }: { teamId: string; scores: Array<Score> }) {
             label="Score"
             required
             withAsterisk
-            min={1}
-            max={99999}
             value={score}
             onChange={(v) => setScore(v)}
             ref={scoreRef}
