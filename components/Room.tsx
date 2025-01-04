@@ -7,6 +7,7 @@ import {
   Modal,
   NumberInput,
   Table,
+  TextInput,
   Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -126,7 +127,7 @@ function FinishGame({}: {}) {
       <Button color="red" onClick={open}>
         Finish Game
       </Button>
-      <Modal opened={opened} onClose={close}>
+      <Modal opened={opened} onClose={close} withCloseButton={false}>
         Are you sure you want to finish the game?
         <Text>All teams and scores will be removed.</Text>
         <Group mt="md">
@@ -154,8 +155,10 @@ function FinishGame({}: {}) {
 
 function Scores({ teamId, scores }: { teamId: string; scores: Array<Score> }) {
   const [opened, { open, close }] = useDisclosure(false);
-  const [score, setScore] = useState<number | "">("");
+  const [score, setScore] = useState<string>("");
   const scoreRef = useRef<HTMLInputElement>(null);
+
+  const isScoreValid = score.trim() === "" || !isNaN(parseInt(score));
 
   const addScore = useMutation(
     ({ storage }, value) => {
@@ -237,16 +240,19 @@ function Scores({ teamId, scores }: { teamId: string; scores: Array<Score> }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            addScore(score);
-            close();
+            if (isScoreValid) {
+              addScore(parseInt(score));
+              close();
+            }
           }}
         >
-          <NumberInput
+          <TextInput
             label="Score"
             required
             withAsterisk
             value={score}
-            onChange={(v) => setScore(v)}
+            onChange={(v) => setScore(v.currentTarget.value)}
+            error={!isScoreValid ? "Score must be a number" : undefined}
             ref={scoreRef}
           />
 
